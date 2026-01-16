@@ -3,6 +3,9 @@ import ollama
 import threading
 import os
 import random
+import speech_recognition as sr # NUOVO: Per il riconoscimento vocale
+
+WAKE_WORDS = ["bmo", "bi mo", "beemo", "bimo", "demo", "nemo", "memo", "di mo", "vi amo"]
 
 # --- Configurazione Percorsi ---
 base_path = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +39,65 @@ ultimo_battito = pygame.time.get_ticks()
 ultimo_movimento_bocca = pygame.time.get_ticks()
 intervallo_battito = random.randint(3000, 6000)
 
+def gestore_risposta_vocale():
+    """Funzione che viene chiamata quando viene rilevata la Wake Word"""
+    global bmo_sta_parlando
+    # Qui chiamiamo la funzione di ascolto che abbiamo creato prima
+    # BMO potrebbe fare una faccia "interrogativa" qui
+    ascolta_voce() 
+
+def loop_ascolto_passivo():
+    r = sr.Recognizer()
+    mic = sr.Microphone()
+    
+    print(f"BMO ti ascolta... (puoi dire: {WAKE_WORDS})")
+    
+    while True:
+        with mic as source:
+            r.adjust_for_ambient_noise(source, duration=0.5)
+            # timeout=None significa che aspetta all'infinito
+            try:
+                audio = r.listen(source, timeout=None, phrase_time_limit=3)
+            except sr.WaitTimeoutError:
+                continue
+        
+        try:
+            # Stampiamo cosa ha capito Google per fare debug
+            frase = r.recognize_google(audio, language="it-IT").lower()
+            print(f"Ho sentito: '{frase}'") 
+            
+            # Controlla se ALMENO UNA delle parole nella lista è nella frase
+            if any(parola in frase for parola in WAKE_WORDS):
+                print("Wake word rilevata! 🤖")
+                gestore_risposta_vocale()
+                
+        except sr.UnknownValueError:
+            continue
+        except Exception as e:
+            print(f"Errore: {e}")
+            continue
+
+# --- FUNZIONE DI ASCOLTO ---
+def ascolta_voce():
+    global bmo_sta_parlando
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("BMO ti ascolta...")
+        # Regola il rumore di fondo
+        r.adjust_for_ambient_noise(source, duration=1)
+        audio = r.listen(source)
+
+    try:
+        # Trasforma l'audio in testo usando Google (richiede internet)
+        domanda = r.recognize_google(audio, language="it-IT")
+        print(f"Tu hai detto: {domanda}")
+        # Avvia Ollama con quello che ha capito
+        threading.Thread(target=chiedi_a_ollama, args=(domanda,)).start()
+    except sr.UnknownValueError:
+        print("BMO non ha capito cosa hai detto.")
+    except sr.RequestError as e:
+        print(f"Errore del servizio di riconoscimento; {e}")
+
 def chiedi_a_ollama(prompt):
     global bmo_sta_parlando
     bmo_sta_parlando = True  # Inizia l'animazione della bocca
@@ -47,6 +109,8 @@ def chiedi_a_ollama(prompt):
         print(f"Errore Ollama: {e}")
     
     bmo_sta_parlando = False # Ferma la bocca
+
+threading.Thread(target=loop_ascolto_passivo, daemon=True).start()
 
 # --- Ciclo Principale ---
 running = True
@@ -61,8 +125,9 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-            domanda = input("Tu: ")
-            threading.Thread(target=chiedi_a_ollama, args=(domanda,)).start()
+            """domanda = input("Tu: ")
+            threading.Thread(target=chiedi_a_ollama, args=(domanda,)).start()"""
+            threading.Thread(target=ascolta_voce).start()
 
     # 2. LOGICA ANIMAZIONE (Macchina a Stati)
     
