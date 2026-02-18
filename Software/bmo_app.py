@@ -4,6 +4,8 @@ import threading
 import os
 import random
 import speech_recognition as sr # NUOVO: Per il riconoscimento vocale
+import subprocess # Per eseguire Piper
+import re
 
 WAKE_WORDS = ["bmo", "bi mo", "beemo", "bimo", "demo", "nemo", "memo", "di mo", "vi amo"]
 
@@ -100,15 +102,54 @@ def ascolta_voce():
 
 def chiedi_a_ollama(prompt):
     global bmo_sta_parlando
-    bmo_sta_parlando = True  # Inizia l'animazione della bocca
     
     try:
+        # 1. Fase di Pensiero (BMO è fermo o fa un'animazione di attesa)
         response = ollama.chat(model='bmo', messages=[{'role': 'user', 'content': prompt}])
-        print(f"BMO: {response['message']['content']}")
+        testo_completo = response['message']['content']
+        
+        # 2. Controllo Home Assistant (se implementato)
+        match = re.search(r"\[.*?\]", testo_completo)
+        if match:
+            threading.Thread(target=esegui_comando_hass, args=(match.group(0),)).start()
+
+        # 3. Fase di Parlato (Inizia l'animazione della bocca)
+        print(f"BMO: {testo_completo}")
+        bmo_sta_parlando = True 
+        
+        # Questa chiamata è BLOCCANTE per il thread di Ollama, 
+        # il che è perfetto: bmo_sta_parlando rimarrà True finché Piper non finisce.
+        parla(testo_completo) 
+        
     except Exception as e:
-        print(f"Errore Ollama: {e}")
+        print(f"Errore: {e}")
     
-    bmo_sta_parlando = False # Ferma la bocca
+    # 4. Fine del parlato (Torna al battito di ciglia)
+    bmo_sta_parlando = False
+
+def parla(testo):
+    """
+    Invia il testo a Piper e lo riproduce. 
+    Nota: Il comando cambia leggermente tra Windows e Linux (Raspberry).
+    """
+    # Rimuove eventuali comandi per Home Assistant prima di parlare
+    testo_pulito = re.sub(r"\[.*?\]", "", testo).strip()
+    
+    if not testo_pulito:
+        return
+
+    # Esempio per Linux/Raspberry Pi (usa 'aplay' per l'audio)
+    # Per Windows, dovresti usare un player come 'ffplay' o salvare in un .wav temporaneo
+    comando_piper = (
+        f'echo "{testo_pulito}" | '
+        f'./piper --model modello_bmo.onnx --output_stdout | aplay'
+    )
+    
+    try:
+        # shell=True permette di usare i pipe (|)
+        subprocess.run(comando_piper, shell=True, check=True)
+    except Exception as e:
+        print(f"Errore durante la riproduzione audio: {e}")
 
 threading.Thread(target=loop_ascolto_passivo, daemon=True).start()
 
