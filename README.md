@@ -14,6 +14,7 @@ A fully functional, physical AI companion inspired by *Adventure Time*. This pro
 
 ## Overview
 BMO Assistant is more than just a script; it's a standalone robot that uses a local Large Language Model (LLM) to interact with its environment. It features a reactive GUI that responds to speech and can control your home through Home Assistant integration.
+I made this project because I had this idea in mind for years but without the possibility to buy all the components I always set it aside. After I found HacClub and understood I could actually do this I went absolutely crazy and did it.
 
 ---
 
@@ -63,5 +64,6 @@ Full Assembly
 Internals
 ![Screenshot 2026-02-19 150843](Images/Screenshot2026-02-19150843.png)
 
-
+Wiring Diagram
+![Screenshot2026-03-05155241](Images/Screenshot2026-03-05155241.png)
 Designed by: Davide Bonazza
