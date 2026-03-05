@@ -58,10 +58,10 @@ BMO Assistant is more than just a script; it's a standalone robot that uses a lo
 
 ## Images
 Full Assembly
-![Screenshot 2026-02-19 150811](Images/Screenshot 2026-02-19 150811.png)
+![Screenshot 2026-02-19 150811](Images/Screenshot2026-02-19150811.png)
 
 Internals
-![Screenshot 2026-02-19 150843](Images/Screenshot 2026-02-19 150843.png)
+![Screenshot 2026-02-19 150843](Images/Screenshot2026-02-19150843.png)
 
 
 Designed by: Davide Bonazza
